@@ -1,39 +1,72 @@
 const express = require('express');
 const axios = require('axios');
+require('dotenv').config();
 
 const app = express();
-app.use(express.json());
-
 const PORT = process.env.PORT || 3000;
 
-// ✅ Health Check Endpoint
+// GET /healthCheck
 app.get('/healthCheck', (req, res) => {
-  res.status(200).json({ status: "OK" });
+  res.status(200).json({ status: 'OK' });
 });
 
-// ✅ Example of using Axios in a GET request
-app.get('/external', async (req, res) => {
+// GET /drugPrices?drugName=Lisinopril&zipCode=95355
+app.get('/drugPrices', async (req, res) => {
+  const { drugName, zipCode } = req.query;
+
+  if (!drugName || !zipCode) {
+    return res.status(400).json({ error: 'Missing drugName or zipCode' });
+  }
+
   try {
-    const response = await axios.get('https://api.publicapis.org/entries');
-    res.json(response.data); // Return the external data
-  } catch (error) {
-    console.error('Axios error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch external data' });
+    // Replace with real API URLs
+    const sources = [
+      getPriceFromSource1(drugName, zipCode),
+      getPriceFromSource2(drugName, zipCode),
+      getPriceFromSource3(drugName, zipCode),
+      getPriceFromSource4(drugName, zipCode)
+    ];
+
+    const results = await Promise.allSettled(sources);
+
+    const pricingData = {
+      source1: results[0].status === 'fulfilled' ? results[0].value : { error: results[0].reason.message },
+      source2: results[1].status === 'fulfilled' ? results[1].value : { error: results[1].reason.message },
+      source3: results[2].status === 'fulfilled' ? results[2].value : { error: results[2].reason.message },
+      source4: results[3].status === 'fulfilled' ? results[3].value : { error: results[3].reason.message },
+    };
+
+    res.json({ drugName, zipCode, pricingData });
+
+  } catch (err) {
+    console.error('Unexpected error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-// ✅ HTTP Methods Example
-app.get('/example', (req, res) => res.send('GET request received'));
-app.post('/example', (req, res) => res.send('POST request received'));
-app.put('/example', (req, res) => res.send('PUT request received'));
-app.delete('/example', (req, res) => res.send('DELETE request received'));
-app.patch('/example', (req, res) => res.send('PATCH request received'));
-app.options('/example', (req, res) => {
-  res.set('Allow', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
-  res.send('OPTIONS request received');
-});
+// ---- MOCK DATA SOURCE FUNCTIONS ----
+// Replace with actual APIs + headers/auth/etc.
+async function getPriceFromSource1(drug, zip) {
+  // Example external call
+  const response = await axios.get(`https://api.mocksource1.com/prices`, {
+    params: { drug, zip }
+  });
+  return response.data;
+}
 
-// ✅ Start the Server
+async function getPriceFromSource2(drug, zip) {
+  return { price: 14.99, pharmacy: "Mock Pharmacy 2" };
+}
+
+async function getPriceFromSource3(drug, zip) {
+  return { price: 12.49, pharmacy: "Mock Pharmacy 3" };
+}
+
+async function getPriceFromSource4(drug, zip) {
+  return { price: 10.99, pharmacy: "Mock Pharmacy 4" };
+}
+
+// ---- START SERVER ----
 app.listen(PORT, () => {
-  console.log(`API is running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
