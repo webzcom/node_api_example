@@ -5,12 +5,22 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// GET /healthCheck
+/**
+ * Health check endpoint.
+ * @route GET /healthCheck
+ * @returns {Object} 200 - Returns { status: "OK" }
+ */
 app.get('/healthCheck', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
-// GET /drugPrices?drugName=Lisinopril&zipCode=95355
+/**
+ * Main endpoint to fetch drug pricing from 4 sources.
+ * @route GET /drugPrices
+ * @queryparam {string} drugName - Name of the drug to search for
+ * @queryparam {string} zipCode - ZIP code of the location to search
+ * @returns {Object} 200 - Pricing data from 4 sources or appropriate error message
+ */
 app.get('/drugPrices', async (req, res) => {
   const { drugName, zipCode } = req.query;
 
@@ -19,7 +29,6 @@ app.get('/drugPrices', async (req, res) => {
   }
 
   try {
-    // Replace with real API URLs
     const sources = [
       getPriceFromSource1(drugName, zipCode),
       getPriceFromSource2(drugName, zipCode),
@@ -44,29 +53,47 @@ app.get('/drugPrices', async (req, res) => {
   }
 });
 
-// ---- MOCK DATA SOURCE FUNCTIONS ----
-// Replace with actual APIs + headers/auth/etc.
+/**
+ * Simulated API call to Source 1.
+ * @param {string} drug - Drug name
+ * @param {string} zip - ZIP code
+ * @returns {Promise<Object>} Pricing data
+ */
 async function getPriceFromSource1(drug, zip) {
-  // Example external call
-  const response = await axios.get(`https://api.mocksource1.com/prices`, {
-    params: { drug, zip }
+  const apiKey = process.env.SOURCE1_API_KEY;
+  const response = await axios.get('https://api.mocksource1.com/prices', {
+    params: { drug, zip },
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    }
   });
   return response.data;
 }
 
+/**
+ * Mock data from Source 2.
+ * @param {string} drug - Drug name
+ * @param {string} zip - ZIP code
+ * @returns {Promise<Object>}
+ */
 async function getPriceFromSource2(drug, zip) {
   return { price: 14.99, pharmacy: "Mock Pharmacy 2" };
 }
 
+/**
+ * Mock data from Source 3.
+ * @param {string} drug - Drug name
+ * @param {string} zip - ZIP code
+ * @returns {Promise<Object>}
+ */
 async function getPriceFromSource3(drug, zip) {
   return { price: 12.49, pharmacy: "Mock Pharmacy 3" };
 }
 
-async function getPriceFromSource4(drug, zip) {
-  return { price: 10.99, pharmacy: "Mock Pharmacy 4" };
-}
-
-// ---- START SERVER ----
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+/**
+ * Mock data from Source 4.
+ * @param {string} drug - Drug name
+ * @param {string} zip - ZIP code
+ * @returns {Promise<Object>}
+ */
+async function getPriceFromSource4(dr
